@@ -1,0 +1,6 @@
+{
+  "name": "SakuraNet SNI Spoof",
+  "description": "Root-based SNI spoofing and fragmentation local proxy tool for Android",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
