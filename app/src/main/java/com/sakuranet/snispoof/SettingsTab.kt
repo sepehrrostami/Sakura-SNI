@@ -104,6 +104,7 @@ object ApkExporter {
 
 private enum class SettingsCategory(val id: String, val label: String) {
     ALL("all", "All Sections"),
+    ADS("ads", "📢 AdMob Ads"),
     APK("apk", "📦 APK Export"),
     ENGINE("engine", "🛡️ Engine & VPN"),
     FRAGMENT("fragment", "✂️ Fragmentation"),
@@ -159,6 +160,8 @@ fun SettingsScreen(
     logLevel: String,
     onLogLevelChange: (String) -> Unit,
     deviceNetStatus: DeviceNetworkStatus,
+    adMobState: AdMobUiState,
+    onReloadAds: () -> Unit,
     apkExportStatus: String?,
     onSaveApkToDownloads: () -> Unit,
     onSaveApkAs: () -> Unit,
@@ -212,6 +215,116 @@ fun SettingsScreen(
                             },
                             modifier = Modifier.testTag("settings_category_${cat.id}")
                         )
+                    }
+                }
+            }
+        }
+
+        // Section 0: Google Mobile Ads Next-Gen SDK Configuration
+        if (selectedCategory == SettingsCategory.ALL || selectedCategory == SettingsCategory.ADS) {
+            var storedIds by remember { mutableStateOf(AdMobConfigStore.load(context)) }
+            var appIdInput by remember(storedIds) { mutableStateOf(storedIds.appId) }
+            var connectUnitInput by remember(storedIds) { mutableStateOf(storedIds.connectRewardedUnitId) }
+            var disconnectUnitInput by remember(storedIds) { mutableStateOf(storedIds.disconnectInterstitialUnitId) }
+
+            SettingsGroupCard(
+                badge = "NEXT-GEN GMA SDK",
+                title = "Google AdMob Connect & Disconnect Ads",
+                subtitle = "Rewarded & Interstitial ads via com.google.android.libraries.ads.mobile.sdk"
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(10.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text(
+                                text = "SDK Initialized: ${if (adMobState.isInitialized) "Yes" else if (adMobState.isInitializing) "Initializing…" else "Pending"} • " +
+                                    "Mode: ${if (adMobState.isTestMode) "Google Test IDs" else "Custom IDs"}",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = "Connect Rewarded: ${if (adMobState.connectAdReady) "Ready" else "Not cached"} | " +
+                                    "Disconnect Interstitial: ${if (adMobState.disconnectAdReady) "Ready" else "Not cached"} | " +
+                                    "Completed: ${adMobState.totalAdsCompleted}",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontFamily = FontFamily.Monospace
+                            )
+                        }
+                    }
+
+                    OutlinedTextField(
+                        value = appIdInput,
+                        onValueChange = { appIdInput = it },
+                        label = { Text("AdMob App ID") },
+                        singleLine = true,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("admob_app_id_input")
+                    )
+
+                    OutlinedTextField(
+                        value = connectUnitInput,
+                        onValueChange = { connectUnitInput = it },
+                        label = { Text("Connect Rewarded Ad Unit ID") },
+                        singleLine = true,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("admob_connect_unit_input")
+                    )
+
+                    OutlinedTextField(
+                        value = disconnectUnitInput,
+                        onValueChange = { disconnectUnitInput = it },
+                        label = { Text("Disconnect Interstitial Ad Unit ID") },
+                        singleLine = true,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("admob_disconnect_unit_input")
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Button(
+                            onClick = {
+                                val updated = AdMobIdsConfig(
+                                    appId = appIdInput.trim(),
+                                    connectRewardedUnitId = connectUnitInput.trim(),
+                                    disconnectInterstitialUnitId = disconnectUnitInput.trim()
+                                )
+                                AdMobConfigStore.save(context, updated)
+                                storedIds = AdMobConfigStore.load(context)
+                                AdMobManager.initialize(context, forceReinit = true)
+                                onReloadAds()
+                            },
+                            modifier = Modifier
+                                .weight(1f)
+                                .heightIn(min = 48.dp)
+                                .testTag("save_admob_ids_button")
+                        ) {
+                            Text("Save & Reload Ads", fontWeight = FontWeight.SemiBold)
+                        }
+
+                        OutlinedButton(
+                            onClick = {
+                                storedIds = AdMobConfigStore.reset(context)
+                                AdMobManager.initialize(context, forceReinit = true)
+                                onReloadAds()
+                            },
+                            modifier = Modifier
+                                .weight(1f)
+                                .heightIn(min = 48.dp)
+                                .testTag("reset_admob_ids_button")
+                        ) {
+                            Text("Use Test IDs", fontWeight = FontWeight.SemiBold)
+                        }
                     }
                 }
             }

@@ -61,6 +61,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         NetworkTools.ensurePhysicalNetworkTracker(applicationContext)
+        AdMobManager.initialize(applicationContext)
         enableEdgeToEdge()
         setContent { AppRoot() }
     }
@@ -112,6 +113,8 @@ fun AppRoot() {
     val running by LogBus.runningFlow.collectAsState()
     val wakeLockHeld by LogBus.wakeLockFlow.collectAsState()
     val logLines by LogBus.linesFlow.collectAsState()
+    val adMobState by AdMobManager.uiState.collectAsState()
+    val activity = remember(context) { context.findActivity() }
     val deviceNetStatus by remember(context) {
         NetworkTools.observeNetworkConnectivity(context)
     }.collectAsState(
@@ -281,10 +284,18 @@ fun AppRoot() {
         }
     }
 
+    val connectWithAdAction: () -> Unit = {
+        AdMobManager.showAdForConnect(
+            activity = activity,
+            context = context,
+            onConnectGranted = { startProxyAction() }
+        )
+    }
+
     val notifPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { _ ->
-        startProxyAction()
+        connectWithAdAction()
     }
 
     BackHandler(enabled = drawerState.isOpen || currentScreen != AppScreen.HOME) {
@@ -678,7 +689,7 @@ fun AppRoot() {
                                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                                 ) {
                                     Button(
-                                        enabled = !running && connectIp.isNotBlank() && fakeSni.isNotBlank(),
+                                        enabled = !running && !adMobState.isWaitingForAdGate && connectIp.isNotBlank() && fakeSni.isNotBlank(),
                                         modifier = Modifier
                                             .weight(1f)
                                             .heightIn(min = 50.dp)
@@ -692,7 +703,7 @@ fun AppRoot() {
                                             ) {
                                                 notifPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
                                             } else {
-                                                startProxyAction()
+                                                connectWithAdAction()
                                             }
                                         }
                                     ) {
@@ -703,13 +714,19 @@ fun AppRoot() {
                                     }
 
                                     OutlinedButton(
-                                        enabled = running,
+                                        enabled = running && !adMobState.isWaitingForAdGate,
                                         modifier = Modifier
                                             .weight(1f)
                                             .heightIn(min = 50.dp)
                                             .testTag("stop_service_button"),
                                         onClick = {
-                                            SniSpoofService.stop(context)
+                                            AdMobManager.showAdForDisconnect(
+                                                activity = activity,
+                                                context = context,
+                                                onDisconnectConfirmed = {
+                                                    SniSpoofService.stop(context)
+                                                }
+                                            )
                                         }
                                     ) {
                                         Text(
@@ -718,6 +735,12 @@ fun AppRoot() {
                                         )
                                     }
                                 }
+
+                                AdGateStatusCard(
+                                    adState = adMobState,
+                                    onReloadAds = { AdMobManager.reloadAllAds(context) },
+                                    onDismissBanner = { AdMobManager.clearStatusBanner() }
+                                )
 
                                 // 3. Saved Profiles Strip (Compact Card)
                                 Card(
@@ -1377,6 +1400,8 @@ fun AppRoot() {
                                     logLevel = logLevel,
                                     onLogLevelChange = { logLevel = it },
                                     deviceNetStatus = deviceNetStatus,
+                                    adMobState = adMobState,
+                                    onReloadAds = { AdMobManager.reloadAllAds(context) },
                                     apkExportStatus = apkExportStatus,
                                     onSaveApkToDownloads = { saveApkToDownloadsAction() },
                                     onSaveApkAs = { createApkDocLauncher.launch(ApkExporter.DEFAULT_APK_NAME) },
@@ -1487,6 +1512,14 @@ fun AppRoot() {
                     showSaveProfileDialog = false
                 },
                 onDismiss = { showSaveProfileDialog = false }
+            )
+        }
+
+        if (adMobState.isWaitingForAdGate) {
+            AdLoadingGateDialog(
+                title = adMobState.gateTitle,
+                subtitle = adMobState.gateSubtitle,
+                onCancel = { AdMobManager.cancelPendingGate() }
             )
         }
     }

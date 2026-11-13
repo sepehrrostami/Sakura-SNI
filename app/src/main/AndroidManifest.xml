@@ -20,6 +20,11 @@
         android:theme="@style/Theme.SakuraSni"
         android:supportsRtl="true">
 
+        <!-- Google Mobile Ads Next-Gen SDK App ID (Google official sample/test App ID; replace for production) -->
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="ca-app-pub-3940256099942544~3347511713" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true"

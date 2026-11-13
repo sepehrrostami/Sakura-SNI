@@ -659,3 +659,249 @@ fun VpnCoexistenceCard(
         }
     }
 }
+
+@Composable
+fun AdGateStatusCard(
+    adState: AdMobUiState,
+    onReloadAds: () -> Unit,
+    onDismissBanner: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .testTag("admob_status_card"),
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (adState.lastErrorWasIncompleteReward) {
+                MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.7f)
+            } else {
+                MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.45f)
+            }
+        ),
+        border = BorderStroke(
+            1.dp,
+            if (adState.lastErrorWasIncompleteReward) {
+                MaterialTheme.colorScheme.error.copy(alpha = 0.6f)
+            } else {
+                MaterialTheme.colorScheme.tertiary.copy(alpha = 0.35f)
+            }
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Text(
+                            text = stringResource(R.string.admob_gate_card_title),
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Surface(
+                            shape = RoundedCornerShape(50),
+                            color = if (adState.isTestMode) {
+                                MaterialTheme.colorScheme.secondaryContainer
+                            } else {
+                                Color(0xFF1B8755).copy(alpha = 0.16f)
+                            }
+                        ) {
+                            Text(
+                                text = if (adState.isTestMode) "TEST ADS" else "LIVE ADS",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp)
+                            )
+                        }
+                    }
+                    Text(
+                        text = stringResource(R.string.admob_gate_card_subtitle),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                TextButton(
+                    onClick = onReloadAds,
+                    modifier = Modifier
+                        .heightIn(min = 36.dp)
+                        .testTag("reload_ads_button")
+                ) {
+                    Text(
+                        text = if (adState.connectAdLoading || adState.disconnectAdLoading) "Loading…" else "Refresh",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                AdReadyPill(
+                    label = "Connect Ad",
+                    ready = adState.connectAdReady,
+                    loading = adState.connectAdLoading,
+                    modifier = Modifier.weight(1f)
+                )
+                AdReadyPill(
+                    label = "Disconnect Ad",
+                    ready = adState.disconnectAdReady,
+                    loading = adState.disconnectAdLoading,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            adState.lastStatusMessage?.let { msg ->
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = if (adState.lastErrorWasIncompleteReward) {
+                        MaterialTheme.colorScheme.errorContainer
+                    } else {
+                        MaterialTheme.colorScheme.surface.copy(alpha = 0.78f)
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 10.dp, vertical = 6.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = msg,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = if (adState.lastErrorWasIncompleteReward) {
+                                MaterialTheme.colorScheme.onErrorContainer
+                            } else {
+                                MaterialTheme.colorScheme.onSurface
+                            },
+                            modifier = Modifier.weight(1f)
+                        )
+                        Text(
+                            text = "✕",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier
+                                .clickable { onDismissBanner() }
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AdReadyPill(
+    label: String,
+    ready: Boolean,
+    loading: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val bgColor = when {
+        ready -> Color(0xFF1B8755).copy(alpha = 0.14f)
+        loading -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f)
+        else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.65f)
+    }
+    val dotColor = when {
+        ready -> Color(0xFF1B8755)
+        loading -> MaterialTheme.colorScheme.primary
+        else -> MaterialTheme.colorScheme.outline
+    }
+    val statusText = when {
+        ready -> "Ready"
+        loading -> "Loading…"
+        else -> "On-Demand"
+    }
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(8.dp),
+        color = bgColor
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(5.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(7.dp)
+                        .clip(CircleShape)
+                        .background(dotColor)
+                )
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+            Text(
+                text = statusText,
+                style = MaterialTheme.typography.labelSmall,
+                color = dotColor,
+                fontWeight = FontWeight.Bold
+            )
+        }
+    }
+}
+
+@Composable
+fun AdLoadingGateDialog(
+    title: String,
+    subtitle: String,
+    onCancel: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onCancel,
+        title = {
+            Text(
+                text = title.ifBlank { "Loading Ad" },
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+        },
+        text = {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                CircularProgressIndicator(modifier = Modifier.size(28.dp), strokeWidth = 3.dp)
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+        },
+        confirmButton = {},
+        dismissButton = {
+            TextButton(
+                onClick = onCancel,
+                modifier = Modifier.testTag("ad_gate_cancel_button")
+            ) {
+                Text(stringResource(R.string.admob_cancel))
+            }
+        }
+    )
+}
+

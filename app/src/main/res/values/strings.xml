@@ -23,8 +23,8 @@
     <string name="tab_proxy_config">Proxy &amp; Config</string>
     <string name="tab_sni_scanner">SNI Scanner &amp; Tools</string>
     <string name="tab_live_logs">Logs</string>
-    <string name="action_start_proxy">Start Proxy</string>
-    <string name="action_stop_proxy">Stop Proxy</string>
+    <string name="action_start_proxy">Connect (Ad)</string>
+    <string name="action_stop_proxy">Disconnect (Ad)</string>
     <string name="action_resolve_dns">Resolve DNS</string>
     <string name="action_tcp_ping">Test TCP</string>
     <string name="action_save_profile">Save Profile</string>
@@ -37,4 +37,7 @@
     <string name="warning_no_internet_title">Internet Connection Lost</string>
     <string name="warning_no_internet_proxy_active">Device has no active internet access while the SNI proxy is running. Upstream connections will fail until Wi-Fi or cellular data is restored.</string>
     <string name="warning_no_internet_idle">No active internet connection detected. Connect to Wi-Fi or mobile data before starting the proxy.</string>
+    <string name="admob_gate_card_title">Ad-Supported Connection</string>
+    <string name="admob_gate_card_subtitle">Watch a short Google AdMob ad to connect or disconnect your proxy config.</string>
+    <string name="admob_cancel">Cancel</string>
 </resources>
